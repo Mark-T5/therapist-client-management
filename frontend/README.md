@@ -1,12 +1,36 @@
-# React + Vite
+🧠 Therapist Client Management  
+A full-stack session tracking app built using React (frontend) and Node.js/Express with MariaDB (managed via phpMyAdmin) on the backend. This project demonstrates my ability to build structured, full-stack applications with CRUD functionality and relational database integration.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![alt text](image.png)
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+🚀 Features  
+👥 Assign clients to therapists  
+📅 Add, edit, and delete session records  
+📊 Table view of all sessions  
+🔄 Axios for frontend-backend communication  
+🎯 RESTful API using Express.js  
+🗃️ MariaDB database managed via phpMyAdmin  
+🎨 Custom styling with CSS  
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+⚙️ How to Run It
+
+🔧 **Prerequisites**  
+- Node.js & npm  
+- MariaDB and phpMyAdmin installed (or running via something like XAMPP)
+
+▶️ **Running the Backend and Frontend**
+```bash
+# Start backend
+cd backend
+node server.js
+```
+```bash
+# Start frontend
+cd frontend
+npm install
+npm run dev
+```

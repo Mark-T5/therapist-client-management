@@ -1,5 +1,6 @@
 {
   "name": "frontend",
+  "homepage": "https://mark-t5.github.io/therapist-client-management",
   "private": true,
   "version": "0.0.0",
   "type": "module",

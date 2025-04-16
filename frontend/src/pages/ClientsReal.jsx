@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import Navbar from "../Navbar";
-import { mockClients } from "../Data/mockData";
 
 const Clients = () => {
   const [clients, setClients] = useState([]);
@@ -9,26 +9,25 @@ const Clients = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phone: "",
+    phone_number: "",
     regularity: "WEEKLY",
   });
   const [editMode, setEditMode] = useState(false);
   const [currentClientId, setCurrentClientId] = useState(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem("clients");
-    if (stored) {
-      setClients(JSON.parse(stored));
-    } else {
-      localStorage.setItem("clients", JSON.stringify(mockClients));
-      setClients(mockClients);
-    }
-    setLoading(false);
+    fetchClients();
   }, []);
 
-  const saveClients = (updatedList) => {
-    setClients(updatedList);
-    localStorage.setItem("clients", JSON.stringify(updatedList));
+  const fetchClients = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/clients");
+      setClients(res.data);
+    } catch (err) {
+      setError("Failed to fetch clients");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -36,20 +35,19 @@ const Clients = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const updatedList = [...clients];
-
-    if (editMode) {
-      const index = updatedList.findIndex((c) => c.id === currentClientId);
-      updatedList[index] = { ...formData, id: currentClientId };
-    } else {
-      const newClient = { ...formData, id: Date.now() };
-      updatedList.push(newClient);
+    try {
+      if (editMode) {
+        await axios.put(`http://localhost:5000/api/clients/${currentClientId}`, formData);
+      } else {
+        await axios.post("http://localhost:5000/api/clients", formData);
+      }
+      resetForm();
+      fetchClients();
+    } catch (err) {
+      setError("Error saving client");
     }
-
-    saveClients(updatedList);
-    resetForm();
   };
 
   const handleEdit = (client) => {
@@ -58,10 +56,14 @@ const Clients = () => {
     setCurrentClientId(client.id);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Delete this client?")) {
-      const updatedList = clients.filter((c) => c.id !== id);
-      saveClients(updatedList);
+      try {
+        await axios.delete(`http://localhost:5000/api/clients/${id}`);
+        fetchClients();
+      } catch (err) {
+        setError("Failed to delete client");
+      }
     }
   };
 
@@ -69,7 +71,7 @@ const Clients = () => {
     setFormData({
       name: "",
       email: "",
-      phone: "",
+      phone_number: "",
       regularity: "WEEKLY",
     });
     setEditMode(false);
@@ -88,11 +90,11 @@ const Clients = () => {
         <h2 className="page-title">{editMode ? "Edit Client" : "Add New Client"}</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            {["name", "email", "phone"].map((field) => (
+            {["name", "email", "phone_number"].map((field) => (
               <div className="form-field" key={field}>
                 <label>{field.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}</label>
                 <input
-                  type={field === "phone" ? "tel" : "text"}
+                  type={field === "phone_number" ? "tel" : "text"}
                   name={field}
                   value={formData[field]}
                   onChange={handleInputChange}
@@ -149,7 +151,7 @@ const Clients = () => {
                 <tr key={c.id}>
                   <td>{c.name}</td>
                   <td>{c.email}</td>
-                  <td>{c.phone}</td>
+                  <td>{c.phone_number}</td>
                   <td>{c.regularity}</td>
                   <td>
                     <div className="action-buttons">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import Navbar from "../Navbar";
-import { mockSessions, mockTherapists, mockClients } from "../Data/mockData";
 
 const Sessions = () => {
   const [sessions, setSessions] = useState([]);
@@ -21,27 +21,28 @@ const Sessions = () => {
   const [currentSessionId, setCurrentSessionId] = useState(null);
 
   useEffect(() => {
-    try {
-      const storedSessions = JSON.parse(localStorage.getItem("sessions"));
-      const storedTherapists = JSON.parse(localStorage.getItem("therapists"));
-      const storedClients = JSON.parse(localStorage.getItem("clients"));
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [sRes, tRes, cRes] = await Promise.all([
+          axios.get("http://localhost:5000/api/sessions"),
+          axios.get("http://localhost:5000/api/therapists"),
+          axios.get("http://localhost:5000/api/clients"),
+        ]);
+        setSessions(sRes.data);
+        setTherapists(tRes.data);
+        setClients(cRes.data);
+        setError(null);
+      } catch (err) {
+        setError("Failed to fetch data");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      setSessions(storedSessions || mockSessions);
-      setTherapists(storedTherapists || mockTherapists);
-      setClients(storedClients || mockClients);
-
-      if (!storedSessions) localStorage.setItem("sessions", JSON.stringify(mockSessions));
-      setLoading(false);
-    } catch (err) {
-      setError("Failed to load session data");
-      setLoading(false);
-    }
+    fetchData();
   }, []);
-
-  const saveSessions = (updatedList) => {
-    setSessions(updatedList);
-    localStorage.setItem("sessions", JSON.stringify(updatedList));
-  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -51,20 +52,35 @@ const Sessions = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const updatedList = [...sessions];
-
-    if (editMode) {
-      const index = updatedList.findIndex((s) => s.id === currentSessionId);
-      updatedList[index] = { ...formData, id: currentSessionId };
-    } else {
-      const newSession = { ...formData, id: Date.now() };
-      updatedList.push(newSession);
+    try {
+      if (editMode) {
+        await axios.put(
+          `http://localhost:5000/api/sessions/${currentSessionId}`,
+          formData
+        );
+      } else {
+        await axios.post("http://localhost:5000/api/sessions", formData);
+      }
+      resetForm();
+      fetchSessions();
+    } catch (err) {
+      setError(
+        editMode ? "Failed to update session" : "Failed to create session"
+      );
+      console.error(err);
     }
+  };
 
-    saveSessions(updatedList);
-    resetForm();
+  const fetchSessions = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/sessions");
+      setSessions(response.data);
+    } catch (err) {
+      setError("Failed to fetch sessions");
+      console.error(err);
+    }
   };
 
   const handleEdit = (session) => {
@@ -79,10 +95,15 @@ const Sessions = () => {
     setCurrentSessionId(session.id);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this session?")) {
-      const updatedList = sessions.filter((s) => s.id !== id);
-      saveSessions(updatedList);
+      try {
+        await axios.delete(`http://localhost:5000/api/sessions/${id}`);
+        fetchSessions();
+      } catch (err) {
+        setError("Failed to delete session");
+        console.error(err);
+      }
     }
   };
 
@@ -99,12 +120,12 @@ const Sessions = () => {
   };
 
   const getTherapistName = (id) => {
-    const t = therapists.find((t) => t.id === parseInt(id));
+    const t = therapists.find((t) => t.id === id);
     return t ? t.name : "Unknown";
   };
 
   const getClientName = (id) => {
-    const c = clients.find((c) => c.id === parseInt(id));
+    const c = clients.find((c) => c.id === id);
     return c ? c.name : "Unknown";
   };
 
@@ -118,6 +139,7 @@ const Sessions = () => {
     <div className="container page-wrapper">
       <Navbar />
       <h1 className="page-title">Session Management</h1>
+
       {error && <div className="alert">{error}</div>}
 
       <div className="form-section">
@@ -233,19 +255,19 @@ const Sessions = () => {
                 <td colSpan="6">No sessions found</td>
               </tr>
             ) : (
-              sessions.map((s) => (
-                <tr key={s.id}>
-                  <td>{formatDate(s.date)}</td>
-                  <td>{getTherapistName(s.therapist_id)}</td>
-                  <td>{getClientName(s.client_id)}</td>
-                  <td>{s.length}</td>
-                  <td>{s.notes}</td>
+              sessions.map((session) => (
+                <tr key={session.id}>
+                  <td>{formatDate(session.date)}</td>
+                  <td>{getTherapistName(session.therapist_id)}</td>
+                  <td>{getClientName(session.client_id)}</td>
+                  <td>{session.length}</td>
+                  <td>{session.notes}</td>
                   <td>
                     <div className="action-buttons">
-                      <button onClick={() => handleEdit(s)} className="button button-yellow">
+                      <button onClick={() => handleEdit(session)} className="button button-yellow">
                         Edit
                       </button>
-                      <button onClick={() => handleDelete(s.id)} className="button button-red">
+                      <button onClick={() => handleDelete(session.id)} className="button button-red">
                         Delete
                       </button>
                     </div>

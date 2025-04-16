@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import Navbar from "../Navbar";
-import { mockTherapists } from "../Data/mockData";
 
 const Therapists = () => {
   const [therapists, setTherapists] = useState([]);
@@ -18,19 +18,20 @@ const Therapists = () => {
   const [currentTherapistId, setCurrentTherapistId] = useState(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem("therapists");
-    if (stored) {
-      setTherapists(JSON.parse(stored));
-    } else {
-      localStorage.setItem("therapists", JSON.stringify(mockTherapists));
-      setTherapists(mockTherapists);
-    }
-    setLoading(false);
+    fetchTherapists();
   }, []);
 
-  const saveTherapists = (updatedList) => {
-    setTherapists(updatedList);
-    localStorage.setItem("therapists", JSON.stringify(updatedList));
+  const fetchTherapists = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get("http://localhost:5000/api/therapists");
+      setTherapists(res.data);
+      setError(null);
+    } catch (err) {
+      setError("Failed to fetch therapists");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -41,20 +42,19 @@ const Therapists = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const updatedList = [...therapists];
-
-    if (editMode) {
-      const index = updatedList.findIndex((t) => t.id === currentTherapistId);
-      updatedList[index] = { ...formData, id: currentTherapistId };
-    } else {
-      const newTherapist = { ...formData, id: Date.now() };
-      updatedList.push(newTherapist);
+    try {
+      if (editMode) {
+        await axios.put(`http://localhost:5000/api/therapists/${currentTherapistId}`, formData);
+      } else {
+        await axios.post("http://localhost:5000/api/therapists", formData);
+      }
+      resetForm();
+      fetchTherapists();
+    } catch (err) {
+      setError("Error saving therapist");
     }
-
-    saveTherapists(updatedList);
-    resetForm();
   };
 
   const handleEdit = (therapist) => {
@@ -63,10 +63,14 @@ const Therapists = () => {
     setCurrentTherapistId(therapist.id);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Delete this therapist?")) {
-      const updatedList = therapists.filter((t) => t.id !== id);
-      saveTherapists(updatedList);
+      try {
+        await axios.delete(`http://localhost:5000/api/therapists/${id}`);
+        fetchTherapists();
+      } catch (err) {
+        setError("Failed to delete therapist");
+      }
     }
   };
 
